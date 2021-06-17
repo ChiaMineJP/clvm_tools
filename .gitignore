@@ -1,1 +1,4 @@
 __pycache__
+.idea/
+clvm_tools.egg-info/
+venv/
