@@ -13,6 +13,7 @@ grep_string = ''
 counter = 0
 force_run = False
 dir_path = pathlib.Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')).resolve()
+backend = 'python'
 
 
 def to_posix_path(os_path: str):
@@ -101,7 +102,9 @@ def run_benchmark_file(fn: str, existing_results: List[str]):
     # name "-" value_size "-" num_calls
     if not dry_run:
         env = open(fn[:-4] + 'env').read()
-        output = subprocess.check_output(['brun', '--backend=rust', '-c', '--quiet', '--time', to_os_path(fn), env])
+        output = subprocess.check_output(
+            ['brun', '--backend=%s' % backend, '-c', '--quiet', '--time', to_os_path(fn), env]
+        )
         output = output.decode('ascii').split('\n', 5)[:-1]
 
         for o in output:
@@ -154,6 +157,8 @@ if __name__ == '__main__':
                         help='grep string applied to benchmark file name')
     parser.add_argument('-f', '--force', action='store_true',
                         help='Run even if result file exists')
+    parser.add_argument('-b', '--backend', default='python',
+                        help='rust/python')
     args = parser.parse_args(args=sys.argv[1:])
 
     if args.force:
@@ -161,6 +166,9 @@ if __name__ == '__main__':
 
     if args.grep:
         grep_string = args.grep
+
+    if args.backend and args.backend == 'rust':
+        backend = 'rust'
 
     root_dir = '%s/test-programs' % dir_path
     if args.root_dir:
