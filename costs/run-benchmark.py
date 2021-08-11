@@ -15,6 +15,7 @@ force_run = False
 dir_path = pathlib.Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')).resolve()
 backend = 'python'
 overwrite = False
+number_of_try = 1
 
 
 def to_posix_path(os_path: str):
@@ -43,7 +44,7 @@ def get_file(folder: str, name: str, dry_run: bool):
     if dry_run:
         return file_handle
 
-    file_handle.write('#cost,assemble_from_ir,to_sexp_f,run_program,multiplier\n')
+    file_handle.write('#cost,assemble_from_ir,to_sexp_f,run_program,multiplier,n\n')
     return file_handle
 
 
@@ -90,46 +91,50 @@ def run_benchmark_file(fn: str, existing_results: List[str]):
     if grep_string and not re.match(grep_string, filename):
         return
 
+    counter += 1
+
     # if we have a csv file for this run already, skip running it again
     dry_run = not force_run and os.path.split(fn)[1].split('-')[0] in existing_results
+    if dry_run:
+        print('%04d: %s SKIPPED' % (counter, fn))
+        return
 
-    if not dry_run:
-        print('%04d: %s' % (counter, fn))
-
-    counter += 1
     counters = {}
+    print('%04d: %s' % (counter, fn))
+
+    matcher = re.compile('(.+)[:=](.+)')
 
     # the filename is expected to be in the form:
     # name "-" value_size "-" num_calls
-    if not dry_run:
-        env = open(fn[:-4] + 'env').read()
-        output = subprocess.check_output(
-            ['brun', '--backend=%s' % backend, '-c', '--quiet', '--time', to_os_path(fn), env]
-        )
-        output = output.decode('ascii').split('\n', 5)[:-1]
-
+    env = open(fn[:-4] + 'env').read()
+    subprocess_args = ['brun', '--backend=%s' % backend, '-c', '--quiet', '--time', to_os_path(fn), env]
+    for i in range(number_of_try):
+        output = subprocess.check_output(subprocess_args)
+        output = output.decode('ascii').splitlines()[:-1]
         for o in output:
-            try:
-                if ':' in o:
-                    key, value = o.split(':')
-                    counters[key.strip()] = value.strip()
-                elif '=' in o:
-                    key, value = o.split('=')
-                    counters[key.strip()] = value.strip()
-            except BaseException as e:
-                print(e)
+            r = matcher.match(o)
+            if r:
+                key = r.group(1).strip()
+                value = float(r.group(2).strip())
+                counters[key] = (counters[key] if key in counters else 0) + value
+            else:
                 print('ERROR parsing: %s' % o)
-        print(counters)
+
+    for key in counters:
+        counters[key] /= number_of_try
+
+    print(counters)
 
     name_components = filename.split('-')
     f = get_file(folder, '-'.join(name_components[0:-1]), dry_run)
-    if not dry_run:
-        line = counters['cost'] + ',' + \
-               counters['assemble_from_ir'] + ',' + \
-               counters['to_sexp_f'] + ',' + \
-               counters['run_program'] + ',' + \
-               name_components[-1].split('.')[0] + '\n'
-        f.write(line)
+    line = \
+        str(counters['cost']) + ',' + \
+        str(counters['assemble_from_ir']) + ',' + \
+        str(counters['to_sexp_f']) + ',' + \
+        str(counters['run_program']) + ',' + \
+        str(number_of_try) + ',' + \
+        name_components[-1].split('.')[0] + '\n'
+    f.write(line)
 
 
 def run_benchmark_folder(directory: str):
@@ -162,19 +167,19 @@ if __name__ == '__main__':
                         help='rust/python')
     parser.add_argument('-w', '--overwrite', action='store_true',
                         help='Overwrite previous benchmark result if it exists')
+    parser.add_argument('-n', '--number-of-try', type=int,
+                        help='Number of benchmark iterations for accurate benchmark result')
     args = parser.parse_args(args=sys.argv[1:])
 
     if args.force:
         force_run = True
-
     if args.grep:
         grep_string = args.grep
-
     if args.backend and args.backend == 'rust':
         backend = 'rust'
-
-    if args.overwrite
+    if args.overwrite:
         overwrite = True
+    number_of_try = args.number_of_try
 
     root_dir = '%s/test-programs' % dir_path
     if args.root_dir:
