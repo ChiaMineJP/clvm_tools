@@ -16,6 +16,7 @@ dir_path = pathlib.Path(os.path.join(os.path.dirname(os.path.realpath(__file__))
 backend = 'python'
 overwrite = False
 number_of_try = 1
+only_heaviest = False
 
 
 def to_posix_path(os_path: str):
@@ -46,6 +47,38 @@ def get_file(folder: str, name: str, dry_run: bool):
 
     file_handle.write('#cost,assemble_from_ir,to_sexp_f,run_program,multiplier,n\n')
     return file_handle
+
+
+def find_heaviest_benchmark_files(directory):
+    is_apply = os.path.split(directory)[1] == 'apply'
+    clvm_files = glob.glob('%s/*.clvm' % directory)
+    if is_apply:
+        return clvm_files[0]
+
+    regex = re.compile('(.+)-([0-9]+)-([0-9]+)[.]clvm')
+    obj = {}
+    for i in range(len(clvm_files)):
+        fn = clvm_files[i]
+        filename = os.path.split(fn)[1]
+        match = regex.match(filename)
+        if not match:
+            continue
+        name = match[1]
+        n_bytes = int(match[2])
+        n = int(match[3])
+        if name not in obj:
+            obj[name] = {
+                'max_bytes': n_bytes,
+                'max_n': n,
+                'heaviest_i': i,
+            }
+        elif n_bytes >= obj[name]['max_bytes'] and n >= obj[name]['max_n']:
+            obj[name]['max_bytes'] = n_bytes
+            obj[name]['max_n'] = n
+            obj[name]['heaviest_i'] = i
+
+    heaviest_i_all = [obj[v]['heaviest_i'] for v in obj]
+    return [clvm_files[i] for i in heaviest_i_all]
 
 
 def try_run_gnuplot(gnuplot_filename: str):
@@ -143,7 +176,10 @@ def run_benchmark_folder(directory: str):
     for r in glob.glob(directory + '/*.csv'):
         existing_results.append(os.path.split(r)[1].split('-')[1])
 
+    heaviest_benchmark_files = find_heaviest_benchmark_files(directory)
     for fn in glob.glob('%s/*.clvm' % directory):
+        if only_heaviest and fn not in heaviest_benchmark_files:
+            continue
         run_benchmark_file(fn, existing_results)
 
     generate_and_run_gnuplot(directory)
@@ -169,6 +205,8 @@ if __name__ == '__main__':
                         help='Overwrite previous benchmark result if it exists')
     parser.add_argument('-n', '--number-of-try', type=int,
                         help='Number of benchmark iterations for accurate benchmark result')
+    parser.add_argument('-o', '--only-heaviest', action='store_true',
+                        help='Run only the heaviest benchmark for each benchmark type')
     args = parser.parse_args(args=sys.argv[1:])
 
     if args.force:
@@ -180,6 +218,8 @@ if __name__ == '__main__':
     if args.overwrite:
         overwrite = True
     number_of_try = args.number_of_try
+    if args.only_heaviest:
+        only_heaviest = True
 
     root_dir = '%s/test-programs' % dir_path
     if args.root_dir:
