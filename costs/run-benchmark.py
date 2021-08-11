@@ -14,6 +14,7 @@ counter = 0
 force_run = False
 dir_path = pathlib.Path(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..')).resolve()
 backend = 'python'
+overwrite = False
 
 
 def to_posix_path(os_path: str):
@@ -35,7 +36,7 @@ def get_file(folder: str, name: str, dry_run: bool):
 
     file_handle: Union[int, IO] = 1
     if not dry_run:
-        file_handle = open(to_os_path(full_path), 'a')
+        file_handle = open(to_os_path(full_path), 'w' if overwrite else 'a')
 
     open_files[full_path] = file_handle
 
@@ -159,6 +160,8 @@ if __name__ == '__main__':
                         help='Run even if result file exists')
     parser.add_argument('-b', '--backend', default='python',
                         help='rust/python')
+    parser.add_argument('-w', '--overwrite', action='store_true',
+                        help='Overwrite previous benchmark result if it exists')
     args = parser.parse_args(args=sys.argv[1:])
 
     if args.force:
@@ -169,6 +172,9 @@ if __name__ == '__main__':
 
     if args.backend and args.backend == 'rust':
         backend = 'rust'
+
+    if args.overwrite
+        overwrite = True
 
     root_dir = '%s/test-programs' % dir_path
     if args.root_dir:
