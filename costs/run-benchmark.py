@@ -203,7 +203,7 @@ if __name__ == '__main__':
                         help='rust/python')
     parser.add_argument('-w', '--overwrite', action='store_true',
                         help='Overwrite previous benchmark result if it exists')
-    parser.add_argument('-n', '--number-of-try', type=int,
+    parser.add_argument('-n', '--number-of-try', type=int, default=1,
                         help='Number of benchmark iterations for accurate benchmark result')
     parser.add_argument('-o', '--only-heaviest', action='store_true',
                         help='Run only the heaviest benchmark for each benchmark type')
