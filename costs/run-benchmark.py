@@ -165,8 +165,8 @@ def run_benchmark_file(fn: str, existing_results: List[str]):
         str(counters['assemble_from_ir']) + ',' + \
         str(counters['to_sexp_f']) + ',' + \
         str(counters['run_program']) + ',' + \
-        str(number_of_try) + ',' + \
-        name_components[-1].split('.')[0] + '\n'
+        name_components[-1].split('.')[0] + ',' + \
+        str(number_of_try) + '\n'
     f.write(line)
 
 
