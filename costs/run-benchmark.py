@@ -6,6 +6,7 @@ import argparse
 import pathlib
 import re
 import shutil
+import datetime
 from typing import List, Union, IO, Dict
 
 open_files: Dict[str, Union[int, IO]] = {}
@@ -17,6 +18,7 @@ backend = 'python'
 overwrite = False
 number_of_try = 1
 only_heaviest = False
+now = str(datetime.datetime.now())
 
 
 def to_posix_path(os_path: str):
@@ -36,6 +38,7 @@ def get_file(folder: str, name: str, dry_run: bool):
     if full_path in open_files:
         return open_files[full_path]
 
+    file_already_exists = os.path.isfile(full_path)
     file_handle: Union[int, IO] = 1
     if not dry_run:
         file_handle = open(to_os_path(full_path), 'w' if overwrite else 'a')
@@ -45,7 +48,9 @@ def get_file(folder: str, name: str, dry_run: bool):
     if dry_run:
         return file_handle
 
-    file_handle.write('#cost,assemble_from_ir,to_sexp_f,run_program,multiplier,n\n')
+    if not file_already_exists or overwrite:
+        file_handle.write('time,env,file,cost,assemble_from_ir,to_sexp_f,run_program,multiplier,n\n')
+
     return file_handle
 
 
@@ -161,6 +166,9 @@ def run_benchmark_file(fn: str, existing_results: List[str]):
     name_components = filename.split('-')
     f = get_file(folder, '-'.join(name_components[0:-1]), dry_run)
     line = \
+        now + ',' + \
+        ('clvm_tools(Python)-clvm(%s)' % ('python' if backend == 'Python' else 'Rust')) + ',' + \
+        filename + ',' + \
         str(counters['cost']) + ',' + \
         str(counters['assemble_from_ir']) + ',' + \
         str(counters['to_sexp_f']) + ',' + \
