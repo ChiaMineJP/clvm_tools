@@ -1,14 +1,14 @@
 import glob
 from numpy import linalg
-from numpy import array
-from numpy import inner
 import os
+
 
 def to_float_list(l):
     ret = []
     for s in l:
         ret.append(float(s))
     return ret
+
 
 def linear_regression_no_outliers(ops, runtime):
     num_points = len(ops)
@@ -33,6 +33,7 @@ def linear_regression_no_outliers(ops, runtime):
 
     # now, run the regression analysis on the cleaned-up points
     return linalg.lstsq(ops, runtime)[0]
+
 
 for directory in glob.glob('test-programs/*'):
     gnuplot_filename = os.path.join(directory, 'render-trends.gnuplot')
