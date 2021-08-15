@@ -167,7 +167,7 @@ def run_benchmark_file(fn: str, existing_results: List[str]):
     f = get_file(folder, '-'.join(name_components[0:-1]), dry_run)
     line = \
         now + ',' + \
-        ('clvm_tools(Python)-clvm(%s)' % ('python' if backend == 'Python' else 'Rust')) + ',' + \
+        ('clvm_tools(Python)-clvm(%s)' % ('Python' if backend == 'python' else 'Rust')) + ',' + \
         filename + ',' + \
         str(counters['cost']) + ',' + \
         str(counters['assemble_from_ir']) + ',' + \
