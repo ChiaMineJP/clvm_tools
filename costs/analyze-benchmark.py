@@ -59,8 +59,8 @@ plot ''' % directory)
         for l in r:
             if l.startswith('#'): continue
             l = l.split(',')
-            runtime.append(float(l[3]))
-            ops.append([float(l[4]), 1.])
+            runtime.append(float(l[6]))
+            ops.append([float(l[7]), 1.])
 
         m, c = linear_regression_no_outliers(ops, runtime)
 

@@ -113,7 +113,7 @@ def generate_and_run_gnuplot(directory: str):
         if color + 1 == count:
             cont = ''
         name = n.split('results-')[1].split('.csv')[0]
-        gnuplot_file.write('"%s" using 5:4 with points lc %d title "%s"%s\n' % (to_os_path(n), color, name, cont))
+        gnuplot_file.write('"%s" using 8:7 with points lc %d title "%s"%s\n' % (to_os_path(n), color, name, cont))
         color += 1
         if not isinstance(v, int):
             v.close()
